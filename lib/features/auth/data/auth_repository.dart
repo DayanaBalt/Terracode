@@ -21,7 +21,7 @@ class AuthRepository {
     await _auth.signInWithEmailAndPassword(email: email, password: password);
   }
 
-  // REGISTRAR USUARIO (Y guardar datos extras)
+  // REGISTRAR USUARIO
   Future<void> signUp({
     required String email,
     required String password,
@@ -41,7 +41,7 @@ class AuthRepository {
         'email': email,
         'name': name,
         'phone': phone,
-        'role': 'seller', // Por defecto, quien se registra es Vendedor
+        'role': 'seller', // Por defecto todos son vendedores al registrarse
         'createdAt': DateTime.now().toIso8601String(),
       });
     }
@@ -51,4 +51,18 @@ class AuthRepository {
   Future<void> signOut() async {
     await _auth.signOut();
   }
+
+  // Funcion para obtener el rol
+  Future<String?> getUserRole() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        return doc.data()?['role'] as String?;
+      }
+    }
+    return null;
+  }
+
+  
 }

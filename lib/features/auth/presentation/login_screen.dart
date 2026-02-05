@@ -6,6 +6,7 @@ import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_input.dart';
 import '../data/auth_repository.dart';
 import 'register_screen.dart';
+import '../../auth/presentation/check_role_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -28,6 +29,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         emailCtrl.text.trim(),
         passCtrl.text.trim(),
       );
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const CheckRoleScreen()),
+        );
+      }
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

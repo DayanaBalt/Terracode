@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; 
 import 'core/constants/app_theme.dart';
 import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/presentation/check_role_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,29 +29,10 @@ class MyApp extends StatelessWidget {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            // ... ¡Lo dejamos pasar!
-            // AQUÍ IRÁ DASHBOARD (Admin o Vendedor).
-            // Por ahora ponemos un texto temporal para probar que funciona.
-           return Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("¡BIENVENIDO! Estás dentro del sistema."),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Esta línea cierra la sesión en Firebase
-                        FirebaseAuth.instance.signOut();
-                      },
-                      child: const Text("Cerrar Sesión (Temporal)"),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            // SI HAY USUARIO -> VAMOS AL DISTRIBUIDOR DE ROLES
+           return const CheckRoleScreen();
           }
-          
+          // SI NO HAY USUARIO -> VAMOS AL LOGIN
           return const LoginScreen();
         },
       ),
