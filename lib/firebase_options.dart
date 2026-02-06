@@ -41,7 +41,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBczsve4i4UdosXlsDgsj1e4myArQp04zY',
+    apiKey: 'AIzaSyDNeafEhxGnlSufLwnx1acnMY6fuoJVj_M',
     appId: '1:808424847353:web:e72416ba8bcdd2f2c8af28',
     messagingSenderId: '808424847353',
     projectId: 'terracode-8e26c',
@@ -77,7 +77,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBczsve4i4UdosXlsDgsj1e4myArQp04zY',
+    apiKey: 'AIzaSyDNeafEhxGnlSufLwnx1acnMY6fuoJVj_M',
     appId: '1:808424847353:web:fc57306521f24a90c8af28',
     messagingSenderId: '808424847353',
     projectId: 'terracode-8e26c',
