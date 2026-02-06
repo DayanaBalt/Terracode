@@ -36,3 +36,12 @@ class AdminRepository {
 
 // PROVIDER Para poder usar la clase anterior en las pantallas
 final adminRepositoryProvider = Provider((ref) => AdminRepository(FirebaseFirestore.instance));
+
+// Vista del vendedor
+final sellerVisitsProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, sellerId) {
+  return FirebaseFirestore.instance
+      .collection('visits')
+      .where('sellerId', isEqualTo: sellerId) //enlace
+      .snapshots() 
+      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+});

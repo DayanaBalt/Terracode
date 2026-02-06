@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_theme.dart';
 import '../data/admin_repository.dart'; 
 import 'widgets/seller_card.dart'; 
+import 'admin_seller_detail_screen.dart';
 
 class AdminSellersListScreen extends ConsumerWidget {
   const AdminSellersListScreen({super.key});
@@ -53,11 +54,17 @@ class AdminSellersListScreen extends ConsumerWidget {
                       return SellerCard(
                         name: seller['name'] ?? 'Sin Nombre',
                         email: seller['email'] ?? 'Sin Correo',
-                        onTap: () {
-                          // AQUÍ ES DONDE SUCEDERÁ LA MAGIA DEL INTERLAZADO
-                          // Al dar clic, iremos a ver las rutas de ESTE vendedor específico
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Viendo detalles de ${seller['name']}")),
+                       onTap: () {
+                          // NAVEGACIÓN Le pasamos el ID del vendedor tocado
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AdminSellerDetailScreen(
+                                sellerId: seller['uid'], // <--- AQUÍ PASAMOS EL DATO CLAVE
+                                sellerName: seller['name'] ?? 'Vendedor',
+                                sellerEmail: seller['email'] ?? '',
+                              ),
+                            ),
                           );
                         },
                       );
