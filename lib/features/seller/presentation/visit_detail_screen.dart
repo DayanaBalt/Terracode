@@ -8,7 +8,7 @@ class VisitDetailScreen extends ConsumerWidget {
   final String visitId;
   final String clientName;
   final String address;
-  final String status;
+  final String status; // Recibimos el estado actual
 
   const VisitDetailScreen({
     super.key,
@@ -20,12 +20,14 @@ class VisitDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Alturas para el diseño responsivo
     final size = MediaQuery.of(context).size;
-    final topHeight = size.height * 0.45; // El mapa ocupa el 45% de arriba
+    final topHeight = size.height * 0.45; 
+
+    // VERIFICAMOS SI la visita ESTÁ COMPLETADA
+    final bool isCompleted = status == 'completed';
 
     return Scaffold(
-      extendBodyBehindAppBar: true, // Para que el mapa quede detrás de la flecha volver
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -40,26 +42,20 @@ class VisitDetailScreen extends ConsumerWidget {
       ),
       body: Stack(
         children: [
-          // EL MAPA DE FONDO (Simulado visualmente)
+          // MAPA DE FONDO (Visual)
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: topHeight,
+            top: 0, left: 0, right: 0, height: topHeight,
             child: Container(
-              color: const Color(0xFFE0F7FA), // Azulito mapa
+              color: const Color(0xFFE0F7FA),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Líneas decorativas de mapa
                   Positioned(top: 50, right: 50, child: Icon(Icons.location_on, color: Colors.blue.withOpacity(0.2), size: 40)),
                   Positioned(bottom: 100, left: 50, child: Icon(Icons.location_on, color: Colors.blue.withOpacity(0.2), size: 40)),
-                  
-                  // Marcador Central
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.location_on, size: 60, color: AppTheme.primaryColor),
+                      Icon(Icons.location_on, size: 60, color: isCompleted ? Colors.green : AppTheme.primaryColor),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
@@ -76,111 +72,133 @@ class VisitDetailScreen extends ConsumerWidget {
             ),
           ),
 
-          // LA TARJETA DE INFORMACIÓN (Deslizable hacia arriba)
+          //  TARJETA DESLIZABLE
           Positioned(
             top: topHeight - 40,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            left: 0, right: 0, bottom: 0,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 30, 24, 20),
+              padding: const EdgeInsets.fromLTRB(24, 30, 24, 0),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
                 boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, -5))],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Título y Estado
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(clientName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.darkText)),
+                              const SizedBox(height: 5),
+                              Text(address, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            // Cambia de color si está completada
+                            color: isCompleted ? Colors.green[50] : const Color(0xFFE0F2F1), 
+                            borderRadius: BorderRadius.circular(12)
+                          ),
+                          child: Icon(
+                            isCompleted ? Icons.check_circle : Icons.store, 
+                            color: isCompleted ? Colors.green : AppTheme.primaryColor
+                          ),
+                        )
+                      ],
+                    ),
+                    
+                    const Divider(height: 40, color: Color(0xFFEEEEEE)),
+
+                    const Text("Información del PDV", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 20),
+                    _buildInfoRow(Icons.access_time, "Horario", "09:00 - 18:00"),
+                    const SizedBox(height: 15),
+                    _buildInfoRow(Icons.phone, "Contacto", "+51 987 654 321"),
+
+                    const SizedBox(height: 40),
+
+                    if (isCompleted)
+                      //SI ESTÁ COMPLETADA: Mostramos cartel de éxito
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: Colors.green[50],
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: Colors.green.withOpacity(0.3))
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(clientName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.darkText)),
-                            const SizedBox(height: 5),
-                            Text(address, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                            const Icon(Icons.check_circle, color: Colors.green),
+                            const SizedBox(width: 10),
+                            const Text("Visita Finalizada", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16)),
                           ],
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: const Color(0xFFE0F2F1), borderRadius: BorderRadius.circular(12)),
-                        child: const Icon(Icons.store, color: AppTheme.primaryColor),
                       )
-                    ],
-                  ),
-                  
-                  const Divider(height: 40, color: Color(0xFFEEEEEE)),
+                    else
+                      // SI NO ESTÁ COMPLETADA: Mostramos el botón de acción
+                      SizedBox(
+                        width: double.infinity,
+                        height: 55,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryColor,
+                            foregroundColor: Colors.white,
+                            elevation: 5,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          ),
+                          onPressed: () async {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Iniciando visita...")));
+                            await ref.read(visitsRepositoryProvider).startVisit(visitId);
 
-                  // Detalles de la Visita
-                  const Text("Información del PDV", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 20),
-                  _buildInfoRow(Icons.access_time, "Horario programado", "09:00 - 18:00"),
-                  const SizedBox(height: 15),
-                  _buildInfoRow(Icons.phone, "Contacto", "+51 987 654 321"),
-                  const SizedBox(height: 15),
-                  _buildInfoRow(Icons.category, "Tipo", "Minimarket"),
-
-                  const Spacer(),
-
-                  // BOTÓN INICIAR VISITA
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        elevation: 5,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                            if (context.mounted) {
+                               Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => VisitInProgressScreen(
+                                    visitId: visitId, 
+                                    clientName: clientName
+                                  )
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.play_arrow),
+                          label: const Text("Iniciar Visita", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ),
                       ),
-                      onPressed: () async {
-                        //  Mostrar carga
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Iniciando visita...")));
-                        
-                        //  Avisar a Firebase (Cambiar estado y poner hora)
-                        await ref.read(visitsRepositoryProvider).startVisit(visitId);
-
-                        // Ir a la pantalla de Cronómetro
-                        if (context.mounted) {
-                           Navigator.pushReplacement( // Usamos Replacement para que no pueda volver atrás fácilmente
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => VisitInProgressScreen(
-                                visitId: visitId, 
-                                clientName: clientName
-                              )
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text("Iniciar Visita", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 15),
-                  
-                  // Botón Secundario
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primaryColor,
-                        side: const BorderSide(color: AppTheme.primaryColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    
+                    const SizedBox(height: 15),
+                    
+                    // Botón Mapa (Siempre visible)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.primaryColor,
+                          side: const BorderSide(color: AppTheme.primaryColor),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        ),
+                        onPressed: () {}, // Aquí luego pondremos Google Maps
+                        icon: const Icon(Icons.map),
+                        label: const Text("Ver en Mapa"),
                       ),
-                      onPressed: () {},
-                      icon: const Icon(Icons.navigation),
-                      label: const Text("Abrir Mapa de Navegación"),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 30),
+                  ],
+                ),
               ),
             ),
           ),
@@ -192,11 +210,7 @@ class VisitDetailScreen extends ConsumerWidget {
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, color: Colors.grey[600], size: 20),
-        ),
+        Icon(icon, color: Colors.grey[400], size: 20),
         const SizedBox(width: 15),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,

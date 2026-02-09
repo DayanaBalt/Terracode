@@ -1,4 +1,4 @@
-// Pantalla que muestra la vista de cada usuario
+// Pantalla que muestra la vista de cada usuario (Reporte del Vendedor)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,80 +18,52 @@ class AdminSellerDetailScreen extends ConsumerWidget {
     required this.sellerEmail,
   });
 
-  @override
+ @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Apuntando al ID de este vendedor específico
     final visitsAsync = ref.watch(sellerVisitsProvider(sellerId));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
-      appBar: AppBar(
-        title: const Text("Reporte de Vendedor", style: TextStyle(color: AppTheme.darkText, fontSize: 18)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.primaryColor),
-      ),
+      appBar: AppBar(title: const Text("Reporte de Vendedor"), backgroundColor: Colors.white, elevation: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // TARJETA DE PERFIL (Encabezado) 
+            // PERFIL
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-              ),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
               child: Row(
                 children: [
-                  const CircleAvatar(
-                    radius: 30,
-                    backgroundColor: AppTheme.lightBackground,
-                    child: Icon(Icons.person, size: 35, color: AppTheme.primaryColor),
-                  ),
+                  const CircleAvatar(radius: 30, backgroundColor: AppTheme.lightBackground, child: Icon(Icons.person, size: 40, color: AppTheme.primaryColor)),
                   const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(sellerName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(sellerEmail, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                        const SizedBox(height: 8),
-                        // Estado en línea (Simulado)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(8)),
-                          child: const Text("● Activo", style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
-                        )
-                      ],
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(sellerName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(sellerEmail, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    ],
                   )
                 ],
               ),
             ),
-
+            
             const SizedBox(height: 25),
 
-            // SECCIÓN DE MÉTRICAS
-            const Align(alignment: Alignment.centerLeft, child: Text("Estadísticas del día", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-            const SizedBox(height: 15),
-
-          visitsAsync.when(
+            visitsAsync.when(
               data: (visits) {
-                // rutas terminadas
                 final completed = visits.where((v) => v['status'] == 'completed').length;
-                // rutas en pendientes o en curso
                 final pending = visits.where((v) => v['status'] == 'pending' || v['status'] == 'in_progress').length;
                 
-                // 3. Calcula el porcentaje de eficiencia
-                final total = completed + pending;
-                final double efficiency = total == 0 ? 0 : (completed / total);
-                final int efficiencyPercent = (efficiency * 100).toInt();
+                //  lista SOLO con las completadas para el historial de abajo
+                final completedVisitsHistory = visits.where((v) => v['status'] == 'completed').toList();
 
                 return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Tarjetas de Conteo
+                    // ESTADÍSTICAS
+                    const Text("Rendimiento Hoy", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
                         _buildStatCard(completed.toString(), "Completadas", Icons.check_circle, Colors.green),
@@ -99,88 +71,100 @@ class AdminSellerDetailScreen extends ConsumerWidget {
                         _buildStatCard(pending.toString(), "Pendientes", Icons.access_time, Colors.orange),
                       ],
                     ),
-                    
-                    const SizedBox(height: 20),
 
-                   // Barra de Rendimiento
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text("Eficiencia", style: TextStyle(fontWeight: FontWeight.bold)),
-                              Text("$efficiencyPercent%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryColor)),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          // Barra visual
-                          LinearProgressIndicator(
-                            value: total == 0 ? 0 : efficiency,
-                            backgroundColor: Colors.grey[200],
-                            color: AppTheme.primaryColor,
-                            minHeight: 10,
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            total == 0 ? "Sin visitas asignadas hoy" : "Basado en $total visitas totales",
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          )
-                        ],
-                      ),
-                    ),
+                    const SizedBox(height: 30),
+
+                    // LISTA DE VISITAS CON FOTOS
+                    const Text("Historial de Visitas Completa", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 10),
+                    
+                    // lista filtrada 
+                    if (completedVisitsHistory.isEmpty) 
+                      const Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Text("Este vendedor no ha completado visitas hoy.", style: TextStyle(color: Colors.grey)),
+                      )
+                    else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        // lista filtrada
+                        itemCount: completedVisitsHistory.length, 
+                        itemBuilder: (context, index) {
+                          final visit = completedVisitsHistory[index]; 
+                          final hasPhoto = visit['photoUrl'] != null;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 15),
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(visit['clientName'] ?? 'Cliente', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    // Chip de estado
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: visit['status'] == 'completed' ? Colors.green[50] : Colors.orange[50],
+                                        borderRadius: BorderRadius.circular(8)
+                                      ),
+                                      child: Text(
+                                        visit['status'] == 'completed' ? 'Completado' : 'Pendiente',
+                                        style: TextStyle(
+                                          fontSize: 10, 
+                                          fontWeight: FontWeight.bold,
+                                          color: visit['status'] == 'completed' ? Colors.green : Colors.orange
+                                        ),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                                const SizedBox(height: 5),
+                                Text(visit['address'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                
+                                // SI HAY FOTO, LA MOSTRAMOS
+                                if (hasPhoto) ...[
+                                  const SizedBox(height: 15),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      visit['photoUrl'],
+                                      height: 150,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (c, child, loading) {
+                                        if (loading == null) return child;
+                                        return Container(height: 150, color: Colors.grey[200], child: const Center(child: CircularProgressIndicator()));
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  const Text("Evidencia fotográfica adjunta", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                ]
+                              ],
+                            ),
+                          );
+                        },
+                      )
                   ],
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, s) => Center(child: Text("Error cargando datos: $e")),
+              error: (e, s) => Text("Error: $e"),
             ),
-
-            const SizedBox(height: 30),
-            
-            //  BOTONES DE CONTACTO 
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {}, 
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor, 
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    icon: const Icon(Icons.phone),
-                    label: const Text("Llamar"),
-                  ),
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {}, 
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primaryColor,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      side: const BorderSide(color: AppTheme.primaryColor),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    icon: const Icon(Icons.message),
-                    label: const Text("Mensaje"),
-                  ),
-                ),
-              ],
-            )
           ],
         ),
       ),
     );
   }
 
-  // Helper para dibujar las tarjetitas cuadradas
   Widget _buildStatCard(String value, String label, IconData icon, Color color) {
     return Expanded(
       child: Container(
@@ -193,15 +177,10 @@ class AdminSellerDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 8),
-                Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
-            ),
+            Icon(icon, color: color),
             const SizedBox(height: 10),
-            Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.darkText)),
+            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(label, style: const TextStyle(color: Colors.grey)),
           ],
         ),
       ),
