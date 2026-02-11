@@ -63,6 +63,16 @@ class AuthRepository {
     }
     return null;
   }
-
-  
 }
+
+//Datos del usuario actual (Admin o Vendedor)
+  final currentUserProfileProvider = StreamProvider<Map<String, dynamic>?>((ref) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return Stream.value(null);
+
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .snapshots()
+        .map((doc) => doc.data());
+  });

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_theme.dart';
 import 'add_visit_screen.dart'; 
 import '../../auth/presentation/login_screen.dart';
-import 'admin_sellers_list_screen.dart';
+import 'admin_sellers_list_screen.dart';// Vendedores
+import 'admin_home_dashboard.dart';//  Dashboard
+import 'admin_settings_screen.dart'; //AJUSTES 
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -16,32 +18,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _selectedIndex = 0;
 
   List<Widget> get _pages => <Widget>[
-    const Center(child: Text('DASHBOARD GENERAL')),
+    const AdminHomeDashboard(),
     const AdminSellersListScreen(),
     const Center(child: Text('REPORTES Y GRÁFICOS')),
-   // PESTAÑA DE AJUSTES (Botón de Salir)
-    Center(
-      child: ElevatedButton.icon(
-        icon: const Icon(Icons.logout),
-        label: const Text('Cerrar Sesión Admin'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.redAccent, 
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-        ),
-        onPressed: () async {
-          // Cerramos sesión en Firebase
-          await FirebaseAuth.instance.signOut();
-
-          if (mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-              (Route<dynamic> route) => false, // Borra todo el historial
-            );
-          }
-        },
-      ),
-    ),
+    const AdminSettingsScreen(),
   ];
 
   void _onItemTapped(int index) {

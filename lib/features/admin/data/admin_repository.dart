@@ -45,3 +45,12 @@ final sellerVisitsProvider = StreamProvider.family<List<Map<String, dynamic>>, S
       .snapshots() 
       .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
 });
+
+// Trae TODAS las visitas ordenadas por fecha Esto sirve para calcular las estadísticas globale
+final allCompanyVisitsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  return FirebaseFirestore.instance
+      .collection('visits')
+      .orderBy('date', descending: true) // Las más recientes primero
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+});
