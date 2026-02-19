@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart'; 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 class VisitsRepository {
   final FirebaseFirestore _firestore;
@@ -73,3 +74,6 @@ return FirebaseFirestore.instance
         }).toList();
       });
 });
+
+final sellerNavIndexProvider = StateProvider<int>((ref) => 0); 
+final activeVisitIdProvider = StateProvider<String?>((ref) => null);

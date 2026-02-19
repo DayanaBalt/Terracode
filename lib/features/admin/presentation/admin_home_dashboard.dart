@@ -1,13 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/constants/app_theme.dart';
 import '../data/admin_repository.dart';
 
 class AdminHomeDashboard extends ConsumerWidget {
   const AdminHomeDashboard({super.key});
-// 1. Calcular tiempo promedio 
+//  Calcular tiempo promedio 
   String _calculateAverageTime(List<Map<String, dynamic>> visits) {
     int totalSeconds = 0; 
     int completedCount = 0;

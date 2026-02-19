@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_theme.dart';
+import '../data/visits_repository.dart';
 import 'visit_in_progress_screen.dart'; 
-import '../data/visits_repository.dart'; 
 
 class VisitDetailScreen extends ConsumerWidget {
   final String visitId;
   final String clientName;
   final String address;
-  final String status; // Recibimos el estado actual
+  final String status;
+  final String phone;
+  final String schedule;
 
   const VisitDetailScreen({
     super.key,
@@ -16,14 +18,14 @@ class VisitDetailScreen extends ConsumerWidget {
     required this.clientName,
     required this.address,
     required this.status,
+    required this.phone,
+    required this.schedule,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final size = MediaQuery.of(context).size;
     final topHeight = size.height * 0.45; 
-
-    // VERIFICAMOS SI la visita ESTÁ COMPLETADA
     final bool isCompleted = status == 'completed';
 
     return Scaffold(
@@ -36,13 +38,18 @@ class VisitDetailScreen extends ConsumerWidget {
           decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
-            onPressed: () => Navigator.pop(context),
+            // --- SOLUCIÓN PANTALLA NEGRA ---
+            onPressed: () {
+              // Limpiamos la selección y volvemos a la pestaña Rutas
+              ref.read(activeVisitIdProvider.notifier).state = null;
+              ref.read(sellerNavIndexProvider.notifier).state = 0;
+            },
           ),
         ),
       ),
       body: Stack(
         children: [
-          // MAPA DE FONDO (Visual)
+          // --- FONDO DEL MAPA ---
           Positioned(
             top: 0, left: 0, right: 0, height: topHeight,
             child: Container(
@@ -58,11 +65,10 @@ class VisitDetailScreen extends ConsumerWidget {
                       Icon(Icons.location_on, size: 60, color: isCompleted ? Colors.green : AppTheme.primaryColor),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [BoxShadow(blurRadius: 10, color: Colors.black.withOpacity(0.1))],
-                        ),
+                        decoration: BoxDecoration(color: Colors.white, 
+                        borderRadius: BorderRadius.circular(20), 
+                        boxShadow: [BoxShadow(blurRadius: 10, 
+                        color: Colors.black.withOpacity(0.1))]),
                         child: Text(clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                       )
                     ],
@@ -72,10 +78,9 @@ class VisitDetailScreen extends ConsumerWidget {
             ),
           ),
 
-          //  TARJETA DESLIZABLE
+          // --- TARJETA DE INFORMACIÓN DESLIZABLE ---
           Positioned(
-            top: topHeight - 40,
-            left: 0, right: 0, bottom: 0,
+            top: topHeight - 40, left: 0, right: 0, bottom: 0,
             child: Container(
               padding: const EdgeInsets.fromLTRB(24, 30, 24, 0),
               decoration: const BoxDecoration(
@@ -88,7 +93,7 @@ class VisitDetailScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header
+                    // CABECERA 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -102,78 +107,77 @@ class VisitDetailScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
+                        // ÍCONO DE ESTADO (Tienda o Check Verde)
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            // Cambia de color si está completada
                             color: isCompleted ? Colors.green[50] : const Color(0xFFE0F2F1), 
                             borderRadius: BorderRadius.circular(12)
                           ),
-                          child: Icon(
-                            isCompleted ? Icons.check_circle : Icons.store, 
-                            color: isCompleted ? Colors.green : AppTheme.primaryColor
-                          ),
+                          child: Icon(isCompleted ? Icons.check_circle : Icons.store, color: isCompleted ? Colors.green : AppTheme.primaryColor),
                         )
                       ],
                     ),
                     
                     const Divider(height: 40, color: Color(0xFFEEEEEE)),
-
+                    
+                    // DATOS DEL PDV
                     const Text("Información del PDV", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 20),
-                    _buildInfoRow(Icons.access_time, "Horario", "09:00 - 18:00"),
+                    
+                    _buildInfoRow(Icons.access_time, "Horario", schedule), 
                     const SizedBox(height: 15),
-                    _buildInfoRow(Icons.phone, "Contacto", "+51 987 654 321"),
+                    _buildInfoRow(Icons.phone, "Contacto", phone),
 
                     const SizedBox(height: 40),
 
+                    // --- BOTONES DE ACCIÓN ---
                     if (isCompleted)
-                      //SI ESTÁ COMPLETADA: Mostramos cartel de éxito
+                      // SI YA ESTÁ COMPLETADA
                       Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(15),
+                        width: double.infinity, padding: const EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: Colors.green[50],
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: Colors.green.withOpacity(0.3))
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.check_circle, color: Colors.green),
-                            const SizedBox(width: 10),
-                            const Text("Visita Finalizada", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16)),
-                          ],
+                          color: Colors.green[50], 
+                          borderRadius: BorderRadius.circular(15), 
+                          border: Border.all(color: Colors.green.withOpacity(0.3))),
+                        child: const Row(mainAxisAlignment: MainAxisAlignment.center, 
+                          children: [Icon(Icons.check_circle, color: Colors.green), 
+                          SizedBox(width: 10), Text("Visita Finalizada", 
+                          style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16))]
                         ),
                       )
                     else
-                      // SI NO ESTÁ COMPLETADA: Mostramos el botón de acción
+                      // SI ESTÁ PENDIENTE -> BOTÓN INICIAR
                       SizedBox(
-                        width: double.infinity,
-                        height: 55,
+                        width: double.infinity, height: 55,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
-                            foregroundColor: Colors.white,
-                            elevation: 5,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                            backgroundColor: AppTheme.primaryColor, 
+                            foregroundColor: Colors.white, elevation: 5, 
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
                           ),
+                          
+                          // ---  SOLUCIÓN NAVEGACIÓN AL CRONÓMETRO ---
                           onPressed: () async {
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Iniciando visita...")));
+                            
+                            //  Iniciamos en Firebase
                             await ref.read(visitsRepositoryProvider).startVisit(visitId);
-
+                            
+                            // Navegamos a la pantalla de Progreso (VisitInProgressScreen)
                             if (context.mounted) {
-                               Navigator.pushReplacement(
+                              Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => VisitInProgressScreen(
-                                    visitId: visitId, 
-                                    clientName: clientName
-                                  )
+                                    visitId: visitId,
+                                    clientName: clientName,
+                                  ),
                                 ),
                               );
                             }
                           },
+                          
                           icon: const Icon(Icons.play_arrow),
                           label: const Text("Iniciar Visita", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
@@ -181,21 +185,17 @@ class VisitDetailScreen extends ConsumerWidget {
                     
                     const SizedBox(height: 15),
                     
-                    // Botón Mapa (Siempre visible)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
+                    // BOTÓN MAPA
+                    SizedBox(width: double.infinity, 
+                      height: 50, 
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.primaryColor,
-                          side: const BorderSide(color: AppTheme.primaryColor),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                        ),
-                        onPressed: () {}, // Aquí luego pondremos Google Maps
-                        icon: const Icon(Icons.map),
-                        label: const Text("Ver en Mapa"),
-                      ),
-                    ),
+                          foregroundColor: AppTheme.primaryColor, 
+                          side: const BorderSide(color: AppTheme.primaryColor), 
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15))), 
+                            onPressed: () {}, 
+                            icon: const Icon(Icons.map), label: const Text("Ver en Mapa"))),
                     const SizedBox(height: 30),
                   ],
                 ),
@@ -208,18 +208,9 @@ class VisitDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.grey[400], size: 20),
-        const SizedBox(width: 15),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.darkText)),
-          ],
-        )
-      ],
-    );
+    return Row(children: [Icon(icon, color: Colors.grey[400], size: 20), 
+    const SizedBox(width: 15), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: 
+    const TextStyle(fontSize: 12, color: Colors.grey)), Text(value, style: 
+    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.darkText))])]);
   }
 }

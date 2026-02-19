@@ -1,10 +1,6 @@
-// Muestra el formulario que se llena solo con los nombres de los vendedores
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_theme.dart';
-import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/widgets/custom_input.dart';
 import '../data/admin_repository.dart';
 
 class AddVisitScreen extends ConsumerStatefulWidget {
@@ -15,101 +11,232 @@ class AddVisitScreen extends ConsumerStatefulWidget {
 }
 
 class _AddVisitScreenState extends ConsumerState<AddVisitScreen> {
-  final clientCtrl = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  
+  // CONTROLADORES
+  final nameCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
-  String? selectedSellerId; // Guarda el ID del vendedor seleccionado
-  bool isUrgent = false;
-  bool isLoading = false;
+  final phoneCtrl = TextEditingController(); 
+  final scheduleCtrl = TextEditingController(); 
+  
+  String? _selectedSellerId;
+  bool _isUrgent = false;
+  bool _isLoading = false;
 
-  void _saveRoute() async {
-    // Validamos que no haya campos vacíos
-    if (clientCtrl.text.isEmpty || addressCtrl.text.isEmpty || selectedSellerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor llena todos los campos')));
+  void _saveVisit() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (_selectedSellerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona un vendedor')));
       return;
     }
 
-    setState(() => isLoading = true);
+    setState(() => _isLoading = true);
     try {
-      // LLAMAMOS AL REPOSITORIO PARA GUARDAR
       await ref.read(adminRepositoryProvider).createVisit(
-        sellerId: selectedSellerId!,
-        clientName: clientCtrl.text.trim(),
+        sellerId: _selectedSellerId!,
+        clientName: nameCtrl.text.trim(),
         address: addressCtrl.text.trim(),
-        isUrgent: isUrgent,
+        isUrgent: _isUrgent,
+        lat: 0.0, 
+        lng: 0.0, 
+        phone: phoneCtrl.text.trim(),       
+        schedule: scheduleCtrl.text.trim(), 
       );
-
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('¡Ruta asignada con éxito!')));
-        Navigator.pop(context);// Cerramos la pantalla al terminar
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ruta creada exitosamente")));
+        Navigator.pop(context); 
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      if (mounted) setState(() => isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
-    // lista de vendedores en tiempo real
-    final sellersList = ref.watch(sellersListProvider);
+    final sellersAsync = ref.watch(sellersListProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.lightBackground,
-      appBar: AppBar(title: const Text("Asignar Nueva Ruta"), backgroundColor: AppTheme.primaryColor, foregroundColor: Colors.white),
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        title: const Text("Nueva Ruta", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: AppTheme.primaryColor,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Seleccionar Vendedor", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            
-            // Menu desplegable Muestra los usuarios registrados
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-              child: sellersList.when(
-                data: (sellers) {
-                  if (sellers.isEmpty) return const Padding(padding: EdgeInsets.all(16), child: Text("No hay vendedores registrados"));
-                  
-                  return DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      hint: const Text("Elige un vendedor"),
-                      value: selectedSellerId,
-                      items: sellers.map((seller) {
-                        return DropdownMenuItem<String>(
-                          value: seller['uid'], // El valor oculto es el ID
-                          child: Text(seller['name'] ?? 'Sin Nombre'), // Lo que se ve es el Nombre
-                        );
-                      }).toList(),
-                      onChanged: (value) => setState(() => selectedSellerId = value),
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              
+              const Text("Datos del Cliente", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+              const SizedBox(height: 10),
+
+              // CLIENTE
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
+                child: Column(
+                  children: [
+                    _buildFancyInput(
+                      controller: nameCtrl,
+                      label: "Nombre del Cliente / Tienda",
+                      icon: Icons.store_mall_directory,
+                      validator: (v) => v!.isEmpty ? 'Requerido' : null,
                     ),
-                  );
-                },
-                loading: () => const LinearProgressIndicator(),
-                error: (e, s) => Text("Error cargando vendedores: $e"),
+                    const SizedBox(height: 20),
+                    _buildFancyInput(
+                      controller: addressCtrl,
+                      label: "Dirección Exacta",
+                      icon: Icons.map,
+                      validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildFancyInput(
+                      controller: phoneCtrl,
+                      label: "Teléfono de Contacto",
+                      icon: Icons.phone,
+                      keyboardType: TextInputType.phone,
+                      validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 20),
-            const Text("Datos del Cliente", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            CustomInput(hintText: "Nombre del Negocio", icon: Icons.store, controller: clientCtrl),
-            CustomInput(hintText: "Dirección", icon: Icons.map, controller: addressCtrl),
+              const SizedBox(height: 25),
+              const Text("Detalles de la Visita", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+              const SizedBox(height: 10),
 
-            SwitchListTile(
-              title: const Text("¿Es Urgente?", style: TextStyle(fontWeight: FontWeight.bold)),
-              value: isUrgent,
-              activeColor: Colors.red,
-              onChanged: (val) => setState(() => isUrgent = val),
-            ),
+              // VISITA
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
+                child: Column(
+                  children: [
+                    // CAMPO DE HORARIO MEJORADO
+                    _buildFancyInput(
+                      controller: scheduleCtrl,
+                      label: "Horario de Atención",
+                      hint: "Ej: 9:00 AM - 6:00 PM",
+                      icon: Icons.access_time_filled,
+                      validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                    ),
+                    
+                    const SizedBox(height: 20),
 
-            const SizedBox(height: 30),
-            CustomButton(text: "Guardar y Asignar", isLoading: isLoading, onPressed: _saveRoute),
-          ],
+                    // DROPDOWN VENDEDORES
+                    sellersAsync.when(
+                      data: (sellers) {
+                        return DropdownButtonFormField<String>(
+                          decoration: InputDecoration(
+                            labelText: "Asignar a Vendedor",
+                            prefixIcon: const Icon(Icons.person_search, color: AppTheme.primaryColor),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                          ),
+                          value: _selectedSellerId,
+                          items: sellers.map<DropdownMenuItem<String>>((seller) {
+                            return DropdownMenuItem(
+                              value: seller['uid'],
+                              child: Text(seller['name'] ?? 'Sin nombre'),
+                            );
+                          }).toList(),
+                          onChanged: (val) => setState(() => _selectedSellerId = val),
+                        );
+                      },
+                      loading: () => const LinearProgressIndicator(),
+                      error: (e, s) => Text("Error: $e"),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // SWITCH URGENTE
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _isUrgent ? Colors.red[50] : Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _isUrgent ? Colors.red.withOpacity(0.3) : Colors.transparent)
+                      ),
+                      child: SwitchListTile(
+                        title: Text("¿Es Prioritario? (Urgente)", style: TextStyle(fontWeight: FontWeight.bold, color: _isUrgent ? Colors.red : Colors.black87)),
+                        subtitle: const Text("Marcar con alerta roja"),
+                        value: _isUrgent,
+                        activeColor: Colors.red,
+                        secondary: Icon(Icons.warning_amber_rounded, color: _isUrgent ? Colors.red : Colors.grey),
+                        onChanged: (val) => setState(() => _isUrgent = val),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 30),
+              
+              // BOTÓN GUARDAR 
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor, 
+                    foregroundColor: Colors.white,
+                    elevation: 5,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                  onPressed: _isLoading ? null : _saveVisit,
+                  child: _isLoading 
+                    ? const CircularProgressIndicator(color: Colors.white) 
+                    : const Text("CREAR RUTA", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                ),
+              ),
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  // WIDGET AUXILIAR PARA LOS CAMPOS DE TEXTO
+  Widget _buildFancyInput({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    String? hint,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+        prefixIcon: Icon(icon, color: AppTheme.primaryColor),
+        filled: true,
+        fillColor: Colors.grey[50], 
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2)),
       ),
     );
   }

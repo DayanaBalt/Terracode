@@ -1,96 +1,100 @@
-// Pantalla Vendedor
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import '../../../../core/constants/app_theme.dart';
-import '../../auth/presentation/login_screen.dart'; 
-import 'seller_home_screen.dart'; 
+import '../data/visits_repository.dart';
+//  PANTALLAS
+import 'seller_home_screen.dart';
+import 'seller_history_screen.dart'; 
+import 'seller_profile_screen.dart'; 
+import 'visit_detail_screen.dart';
 
-class SellerDashboardScreen extends StatefulWidget {
+class SellerDashboardScreen extends ConsumerWidget {
   const SellerDashboardScreen({super.key});
 
   @override
-  State<SellerDashboardScreen> createState() => _SellerDashboardScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedIndex = ref.watch(sellerNavIndexProvider);
 
-class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
-  int _selectedIndex = 0;
+    final List<Widget> pages = [
+      const SellerHomeScreen(),
+      const VisitTabManager(),
+      const SellerHistoryScreen(), 
+      const SellerProfileScreen(), 
+    ];
 
-  // Definimos las pantallas
-  static final List<Widget> _pages = <Widget>[
-    const SellerHomeScreen(), 
-    const Center(child: Text('Pantalla de VISITA ACTIVA')),
-    const Center(child: Text('Pantalla de HISTORIAL')),
-    const SellerProfileTab(), 
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: IndexedStack(
+        index: selectedIndex,
+        children: pages,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -5)),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -5))],
         ),
         child: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
+          items: const [
             BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Rutas'),
             BottomNavigationBarItem(icon: Icon(Icons.timer_outlined), label: 'Visita'),
             BottomNavigationBarItem(icon: Icon(Icons.camera_alt_outlined), label: 'Historial'),
             BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Perfil'),
           ],
-          currentIndex: _selectedIndex,
+          currentIndex: selectedIndex,
           selectedItemColor: AppTheme.primaryColor,
           unselectedItemColor: Colors.grey,
-          showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
-          onTap: _onItemTapped,
           backgroundColor: Colors.white,
-          elevation: 0,
+          onTap: (index) {
+            ref.read(sellerNavIndexProvider.notifier).state = index;
+          },
         ),
       ),
     );
   }
 }
 
-// Widget pequeño para el perfil y el botón de Salir
-class SellerProfileTab extends StatelessWidget {
-  const SellerProfileTab({super.key});
+// ---  Muestra la visita seleccionada en la pestaña ---
+class VisitTabManager extends ConsumerWidget {
+  const VisitTabManager({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircleAvatar(radius: 40, backgroundColor: AppTheme.primaryColor, child: Icon(Icons.person, size: 40, color: Colors.white)),
-          const SizedBox(height: 20),
-          const Text('Perfil de Vendedor', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 30),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.logout),
-            label: const Text('Cerrar Sesión'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-            onPressed: () async {
-              // Lógica de logout segura
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (Route<dynamic> route) => false,
-                );
-              }
-            },
-          ),
-        ],
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeId = ref.watch(activeVisitIdProvider);
+
+    if (activeId == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.touch_app, size: 60, color: Colors.grey),
+            const SizedBox(height: 20),
+            const Text("Selecciona una ruta primero", style: TextStyle(color: Colors.grey)),
+            TextButton(
+              onPressed: () => ref.read(sellerNavIndexProvider.notifier).state = 0,
+              child: const Text("Ir a Rutas"),
+            )
+          ],
+        ),
+      );
+    }
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('visits').doc(activeId).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        
+        // Obtenemos los datos 
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        
+        return VisitDetailScreen(
+          visitId: activeId,
+          clientName: data['clientName'] ?? 'Cliente',
+          address: data['address'] ?? 'Dirección',
+          status: data['status'] ?? 'pending',
+          phone: data['phone'] ?? 'No registrado',
+          schedule: data['schedule'] ?? 'No especificado',
+        );
+      },
     );
   }
 }

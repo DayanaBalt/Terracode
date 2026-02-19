@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_theme.dart';
 import 'add_visit_screen.dart'; 
 import '../../auth/presentation/login_screen.dart';
-import 'admin_sellers_list_screen.dart';// Vendedores
-import 'admin_home_dashboard.dart';//  Dashboard
-import 'admin_settings_screen.dart'; //AJUSTES 
+import 'admin_sellers_list_screen.dart';
+import 'admin_home_dashboard.dart';
+import 'admin_settings_screen.dart'; 
+import 'admin_reports_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -20,7 +21,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<Widget> get _pages => <Widget>[
     const AdminHomeDashboard(),
     const AdminSellersListScreen(),
-    const Center(child: Text('REPORTES Y GRÁFICOS')),
+    const AdminReportsScreen(),
     const AdminSettingsScreen(),
   ];
 

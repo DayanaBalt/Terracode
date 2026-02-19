@@ -1,56 +1,91 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-//  Provider para obtener la lista de vendedores
-final sellersListProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
-  return FirebaseFirestore.instance
-      .collection('users')
-      .where('role', isEqualTo: 'seller') // Solo queremos vendedores
-      .snapshots()
-      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
-});
-
-// clase que contiene la función para guardar la visita
 class AdminRepository {
   final FirebaseFirestore _firestore;
+
   AdminRepository(this._firestore);
 
+  //  Crear una nueva visita
   Future<void> createVisit({
     required String sellerId,
     required String clientName,
     required String address,
     required bool isUrgent,
- }) async {
-    // Guarda en la colección 'visits'
+    required double lat,
+    required double lng,
+    required String phone,
+    required String schedule,
+  }) async {
     await _firestore.collection('visits').add({
-      'sellerId': sellerId, // Esto enlaza la ruta con el vendedor específico
+      'sellerId': sellerId,
       'clientName': clientName,
       'address': address,
-      'status': 'pending',
       'isUrgent': isUrgent,
+      'status': 'pending',
       'date': DateTime.now().toIso8601String(),
       'createdAt': FieldValue.serverTimestamp(),
+      'location': {'lat': lat, 'lng': lng},
+      'points': 0, 
+      'phone': phone,
+      'schedule': schedule,
     });
+  }
+
+  // Asignar puntos a una visita (Calificar)
+  Future<void> assignPointsToVisit(String visitId, int points) async {
+    await _firestore.collection('visits').doc(visitId).update({
+      'points': points,
+      'pointsAssignedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  //  Obtener lista de vendedores (usuarios con rol 'seller')
+  Stream<List<Map<String, dynamic>>> getSellers() {
+    return _firestore
+        .collection('users')
+        .where('role', isEqualTo: 'seller')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['uid'] = doc.id;
+              return data;
+            }).toList());
   }
 }
 
-// PROVIDER Para poder usar la clase anterior en las pantallas
-final adminRepositoryProvider = Provider((ref) => AdminRepository(FirebaseFirestore.instance));
-
-// Vista del vendedor
-final sellerVisitsProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, sellerId) {
-  return FirebaseFirestore.instance
-      .collection('visits')
-      .where('sellerId', isEqualTo: sellerId) //enlace
-      .snapshots() 
-      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+// PROVEEDORES
+final adminRepositoryProvider = Provider<AdminRepository>((ref) {
+  return AdminRepository(FirebaseFirestore.instance);
 });
 
-// Trae TODAS las visitas ordenadas por fecha Esto sirve para calcular las estadísticas globale
+final sellersListProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(adminRepositoryProvider).getSellers();
+});
+
+// Antena Global para el Dashboard
 final allCompanyVisitsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   return FirebaseFirestore.instance
       .collection('visits')
-      .orderBy('date', descending: true) // Las más recientes primero
+      .orderBy('date', descending: true)
       .snapshots()
-      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+      .map((snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id; // Importante para poder editar
+            return data;
+          }).toList());
+});
+
+//  Trae las visitas de UN vendedor específico (por ID)
+final sellerVisitsProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, sellerId) {
+  return FirebaseFirestore.instance
+      .collection('visits')
+      .where('sellerId', isEqualTo: sellerId)
+      .orderBy('date', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList());
 });
