@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_theme.dart';
 import '../data/visits_repository.dart';
 import 'visit_in_progress_screen.dart'; 
+import 'package:url_launcher/url_launcher.dart';
 
 class VisitDetailScreen extends ConsumerWidget {
   final String visitId;
@@ -22,6 +23,15 @@ class VisitDetailScreen extends ConsumerWidget {
     required this.schedule,
   });
 
+  Future<void> _openMap(String address) async {
+    final query = Uri.encodeComponent(address);
+    final url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query");
+
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      debugPrint('No se pudo abrir el mapa');
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final size = MediaQuery.of(context).size;
@@ -38,7 +48,6 @@ class VisitDetailScreen extends ConsumerWidget {
           decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
-            // --- SOLUCIÓN PANTALLA NEGRA ---
             onPressed: () {
               // Limpiamos la selección y volvemos a la pestaña Rutas
               ref.read(activeVisitIdProvider.notifier).state = null;
@@ -194,7 +203,7 @@ class VisitDetailScreen extends ConsumerWidget {
                           side: const BorderSide(color: AppTheme.primaryColor), 
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15))), 
-                            onPressed: () {}, 
+                            onPressed: () => _openMap(address), 
                             icon: const Icon(Icons.map), label: const Text("Ver en Mapa"))),
                     const SizedBox(height: 30),
                   ],

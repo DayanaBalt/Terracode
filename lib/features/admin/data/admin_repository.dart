@@ -32,6 +32,27 @@ class AdminRepository {
     });
   }
 
+ // ENVIAR MENSAJE GLOBAL A TODOS LOS VENDEDORES 
+  Future<void> sendGlobalNotification(String title, String message) async {
+    //  Buscamos a todos los usuarios que sean vendedores
+    final sellersSnapshot = await _firestore.collection('users').where('role', isEqualTo: 'seller').get();
+    final batch = _firestore.batch();
+
+    for (var doc in sellersSnapshot.docs) {
+      final newNotifRef = _firestore.collection('notifications').doc();
+      batch.set(newNotifRef, {
+        'userId': doc.id, 
+        'title': title,
+        'body': message,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    //  Ejecutamos el guardado masivo
+    await batch.commit();
+  }
+
   // Asignar puntos a una visita (Calificar)
   Future<void> assignPointsToVisit(String visitId, int points) async {
     await _firestore.collection('visits').doc(visitId).update({
@@ -71,7 +92,7 @@ final allCompanyVisitsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
       .snapshots()
       .map((snapshot) => snapshot.docs.map((doc) {
             final data = doc.data();
-            data['id'] = doc.id; // Importante para poder editar
+            data['id'] = doc.id;
             return data;
           }).toList());
 });

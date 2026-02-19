@@ -19,12 +19,61 @@ class AdminSettingsScreen extends ConsumerWidget {
     }
   }
 
+//ENVIAR MENSAJE MASIVO (GLOBAL)
+  void _showGlobalMessageDialog(BuildContext context, WidgetRef ref) {
+    final titleCtrl = TextEditingController(text: "Orientación General");
+    final bodyCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Mensaje a Todos"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Este mensaje le llegará a TODOS los vendedores en campo.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+              const SizedBox(height: 15),
+              TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: "Título del Mensaje", border: OutlineInputBorder())),
+              const SizedBox(height: 10),
+              TextField(controller: bodyCtrl, decoration: const InputDecoration(labelText: "Contenido", border: OutlineInputBorder()), maxLines: 3),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar", style: TextStyle(color: Colors.grey))),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, foregroundColor: Colors.white),
+              onPressed: () async {
+                if (bodyCtrl.text.isEmpty) return;
+                
+                // Cerramos el cuadro y mostramos que está cargando
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Enviando orientaciones a todos...")));
+
+                // Disparamos la función masiva
+                await ref.read(adminRepositoryProvider).sendGlobalNotification(
+                  titleCtrl.text, 
+                  bodyCtrl.text
+                );
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("¡Mensaje enviado exitosamente!"), backgroundColor: Colors.green));
+                }
+              }, 
+              icon: const Icon(Icons.send, size: 16),
+              label: const Text("Enviar a Todos")
+            ),
+          ],
+        );
+      }
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 1. CONEXIÓN REAL: Escuchamos quién es el usuario actual
     final userProfileAsync = ref.watch(currentUserProfileProvider);
     
-    // También escuchamos el conteo real de vendedores
+    // Conteo real de vendedores
     final sellersAsync = ref.watch(sellersListProvider);
 
     return Scaffold(
@@ -39,7 +88,7 @@ class AdminSettingsScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF004D40), // Verde Corporativo
+                  color: const Color(0xFF004D40), 
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(color: const Color(0xFF004D40).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))
@@ -47,11 +96,10 @@ class AdminSettingsScreen extends ConsumerWidget {
                 ),
                 child: userProfileAsync.when(
                   data: (user) {
-                    // AQUÍ OBTENEMOS LOS DATOS REALES
                     final name = user?['name'] ?? 'Usuario';
                     final email = user?['email'] ?? 'Sin correo';
                     final uid = user?['uid'] ?? '---';
-                    // Tomamos los últimos 4 caracteres del ID para que se vea profesional (ej: ID: ...A82B)
+                    // Toma los últimos 4 caracteres del ID  (ej: ID: ...A82B)
                     final shortId = uid.length > 4 ? uid.substring(uid.length - 4).toUpperCase() : uid;
 
                     return Row(
@@ -62,7 +110,7 @@ class AdminSettingsScreen extends ConsumerWidget {
                           child: const Icon(Icons.shield_outlined, color: Colors.white, size: 35),
                         ),
                         const SizedBox(width: 20),
-                        Expanded( // Usamos Expanded para evitar error si el correo es muy largo
+                        Expanded( // Usa Expanded para evitar error si el correo es muy largo
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -87,17 +135,23 @@ class AdminSettingsScreen extends ConsumerWidget {
 
               const SizedBox(height: 30),
 
-              // SECCIÓN DE CONFIGURACIÓN
-              const Text("Configuración", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.darkText)),
+              // --- SECCIÓN DE COMUNICACIÓN Y CONFIGURACIÓN ---
+              const Text("Comunicación y Sistema", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.darkText)),
               const SizedBox(height: 15),
               
-              _buildSettingsOption(Icons.notifications_outlined, "Notificaciones", trailing: _notificationBadge(3)),
-              _buildSettingsOption(Icons.lock_outline, "Seguridad y privacidad"),
-              _buildSettingsOption(Icons.description_outlined, "Términos y condiciones"),
+              // BOTÓN DE NOTIFICACIONES
+              _buildSettingsOption(
+                icon: Icons.notifications_active, 
+                title: "Notificaciones", 
+                subtitle: "Mensaje masivo a todos los vendedores",
+                onTap: () => _showGlobalMessageDialog(context, ref)
+              ),
+              _buildSettingsOption(icon: Icons.lock_outline, title: "Seguridad y privacidad"),
+              _buildSettingsOption(icon: Icons.description_outlined, title: "Términos y condiciones"),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 25),
 
-              // SECCIÓN DE GESTIÓN (Datos Reales)
+              // SECCIÓN DE GESTIÓN 
               const Text("Gestión de Usuarios", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.darkText)),
               const SizedBox(height: 15),
 
@@ -110,7 +164,6 @@ class AdminSettingsScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text("Total de vendedores", style: TextStyle(color: Colors.grey)),
-                        // CONTADOR REAL DE LA BASE DE DATOS
                         sellersAsync.when(
                           data: (s) => Text("${s.length}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                           loading: () => const Text("-"),
@@ -122,12 +175,10 @@ class AdminSettingsScreen extends ConsumerWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () {
-                          // TODO: Navegar a gestión de permisos
-                        },
+                        onPressed: () {},
                         child: const Text("Administrar Permisos"),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -151,7 +202,6 @@ class AdminSettingsScreen extends ConsumerWidget {
               ),
               
               const SizedBox(height: 20),
-              // Versión de la app (Esto sí puede ser estático o venir de un config file)
               const Center(child: Text("TerraCode v1.0.0", style: TextStyle(color: Colors.grey, fontSize: 10))),
             ],
           ),
@@ -160,7 +210,14 @@ class AdminSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSettingsOption(IconData icon, String title, {Widget? trailing}) {
+  // WIDGET MEJORADO PARA ACEPTAR CLICS
+  Widget _buildSettingsOption({
+    required IconData icon, 
+    required String title, 
+    String? subtitle,
+    Widget? trailing, 
+    VoidCallback? onTap
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -169,19 +226,16 @@ class AdminSettingsScreen extends ConsumerWidget {
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
       ),
       child: ListTile(
-        leading: Icon(icon, color: AppTheme.primaryColor),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(icon, color: AppTheme.primaryColor),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 12)) : null,
         trailing: trailing ?? const Icon(Icons.chevron_right, color: Colors.grey),
-        onTap: () {},
+        onTap: onTap ?? () {},
       ),
-    );
-  }
-
-  Widget _notificationBadge(int count) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-      child: Text("$count", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 }

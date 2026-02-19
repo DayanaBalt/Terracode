@@ -15,7 +15,6 @@ class VisitsRepository {
   // Subir foto y obtener el link de descarga
   Future<String?> uploadVisitPhoto(String visitId, File photo) async {
     try {
-      // Ruta única: visits_photos/ID_VISITA/FECHA.jpg
       final ref = _storage.ref().child('visits_photos').child(visitId).child('${DateTime.now().millisecondsSinceEpoch}.jpg');
       
       // Subimos el archivo
@@ -77,3 +76,13 @@ return FirebaseFirestore.instance
 
 final sellerNavIndexProvider = StateProvider<int>((ref) => 0); 
 final activeVisitIdProvider = StateProvider<String?>((ref) => null);
+
+// --- NOTIFICACIONES EN TIEMPO REAL ---
+final unreadNotificationsProvider = StreamProvider.family<int, String>((ref, userId) {
+  return FirebaseFirestore.instance
+      .collection('notifications')
+      .where('userId', isEqualTo: userId)
+      .where('isRead', isEqualTo: false) 
+      .snapshots()
+      .map((snapshot) => snapshot.docs.length);
+});

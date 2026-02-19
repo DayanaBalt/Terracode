@@ -6,6 +6,7 @@ import '../../../../core/constants/app_theme.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../data/visits_repository.dart';
+import 'seller_messages_screen.dart';
 
 class SellerProfileScreen extends ConsumerWidget {
   const SellerProfileScreen({super.key});
@@ -92,7 +93,7 @@ class SellerProfileScreen extends ConsumerWidget {
                             final total = visits.length;
                             final uniqueClients = visits.map((v) => v['clientName']).toSet().length;
                             
-                            // SUMA REAL DE PUNTOS (Traídos de Firebase)
+                            // SUMA DE PUNTOS 
                             final totalPoints = visits.fold<int>(0, (sum, visit) {
                               final p = visit['points'];
                               return sum + (p is int ? p : 0);
@@ -141,7 +142,7 @@ class SellerProfileScreen extends ConsumerWidget {
                        try {
                          date = DateTime.parse(v['date'].toString());
                        } catch (e) {
-                         return false; // Fecha inválida
+                         return false; 
                        }
                      }
 
@@ -203,14 +204,33 @@ class SellerProfileScreen extends ConsumerWidget {
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
                 child: Column(
                   children: [
-                    _buildSettingsTile(
-                      Icons.chat_outlined, 
-                      "Mensajes del Admin", 
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-                        child: const Text("1 Nuevo", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                      )
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final userUid = userProfileAsync.value?['uid'];
+                        if (userUid == null) return _buildSettingsTile(Icons.chat_outlined, "Mensajes del Admin");
+                        final unreadAsync = ref.watch(unreadNotificationsProvider(userUid));
+
+                        return unreadAsync.when(
+                          data: (unreadCount) {
+                            return _buildSettingsTile(
+                              Icons.chat_outlined, 
+                              "Mensajes del Admin", 
+                              trailing: unreadCount > 0 
+                                ? Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                                    child: Text("$unreadCount Nuevo${unreadCount > 1 ? 's' : ''}", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  )
+                                : const Icon(Icons.chevron_right, color: Colors.grey),
+                              onTap: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => const SellerMessagesScreen()));
+                              }
+                            );
+                          },
+                          loading: () => _buildSettingsTile(Icons.chat_outlined, "Mensajes del Admin"),
+                          error: (_, __) => _buildSettingsTile(Icons.chat_outlined, "Mensajes del Admin"),
+                        );
+                      }
                     ),
                     const Divider(height: 1, indent: 50),
                     _buildSettingsTile(Icons.lock_outline, "Cambiar Contraseña"),
@@ -253,6 +273,7 @@ class SellerProfileScreen extends ConsumerWidget {
       style: const TextStyle(fontSize: 12, color: Colors.white70))]
     );
   Widget _buildVerticalLine() => Container(height: 30, width: 1, color: Colors.white24);
+  
   Widget _buildStatRowCard(IconData icon, String title, String value, Color color) {
     return Container(
       padding: const EdgeInsets.all(15),
@@ -267,10 +288,12 @@ class SellerProfileScreen extends ConsumerWidget {
       ]),
     );
   }
-  Widget _buildSettingsTile(IconData icon, String title, {Widget? trailing}) => ListTile(leading: Icon(icon, 
-    color: AppTheme.primaryColor), 
-    title: Text(title, style: const TextStyle(
-      fontWeight: FontWeight.w500)),
-       trailing: trailing ?? const Icon(Icons.chevron_right, 
-       color: Colors.grey), onTap: () {});
+
+  //  Firma actualizada para aceptar onTap
+  Widget _buildSettingsTile(IconData icon, String title, {Widget? trailing, VoidCallback? onTap}) => ListTile(
+    leading: Icon(icon, color: AppTheme.primaryColor), 
+    title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+    trailing: trailing ?? const Icon(Icons.chevron_right, color: Colors.grey), 
+    onTap: onTap ?? () {},
+  );
 }

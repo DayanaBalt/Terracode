@@ -1,8 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_theme.dart';
 import 'add_visit_screen.dart'; 
-import '../../auth/presentation/login_screen.dart';
 import 'admin_sellers_list_screen.dart';
 import 'admin_home_dashboard.dart';
 import 'admin_settings_screen.dart'; 
@@ -34,7 +32,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Usamos el getter _pages
       body: _pages[_selectedIndex],
       
       // BOTÓN FLOTANTE 
