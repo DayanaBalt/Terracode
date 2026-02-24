@@ -1,11 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
 class PdfGenerator {
-  static Future<void> generateAndPrint(List<Map<String, dynamic>> visits) async {
-    final doc = pw.Document();
+static Future<void> generateAndPrint(List<Map<String, dynamic>> visits, {String reportTitle = "General"}) async {   
+   final doc = pw.Document();
     
     // Calculamos métricas
     final total = visits.length;
@@ -18,11 +19,12 @@ class PdfGenerator {
     });
     
     final font = await PdfGoogleFonts.nunitoExtraLight();
+    final fontBold = await PdfGoogleFonts.nunitoBold();
 
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        theme: pw.ThemeData.withFont(base: font),
+        theme: pw.ThemeData.withFont(base: font, bold: fontBold),
         build: (pw.Context context) {
           return [
             // ENCABEZADO
@@ -30,9 +32,23 @@ class PdfGenerator {
               level: 0,
               child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
-                  pw.Text("TerraCode", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-                  pw.Text("Reporte Semanal", style: const pw.TextStyle(fontSize: 18, color: PdfColors.grey)),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text("TerraCode", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.teal800)),
+                      pw.Text("Reporte de Rendimiento", style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
+                    ]
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      // MUESTRA DE QUIÉN ES EL REPORTE
+                      pw.Text("Vendedor: $reportTitle", style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                      pw.Text("Fecha: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}", style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey)),
+                    ]
+                  )
                 ],
               ),
             ),
@@ -41,11 +57,11 @@ class PdfGenerator {
 
             //  RESUMEN
             pw.Container(
-              padding: const pw.EdgeInsets.all(10),
+              padding: const pw.EdgeInsets.all(15),
               decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: PdfColors.grey300),
+                border: pw.Border.all(color: PdfColors.teal200),
                 borderRadius: pw.BorderRadius.circular(10),
-                color: PdfColors.grey100,
+                color: PdfColors.teal50,
               ),
               child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
@@ -68,14 +84,20 @@ class PdfGenerator {
               headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
               headerDecoration: const pw.BoxDecoration(color: PdfColors.teal),
               rowDecoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey300))),
+              cellAlignment: pw.Alignment.centerLeft,
               data: <List<dynamic>>[
-                ['Fecha', 'Cliente', 'Estado', 'Puntos'],
+                ['Fecha y Hora', 'Cliente', 'Estado', 'Puntos'],
                 ...visits.map((visit) {
+                  //  FECHA REAL 
                   String date = "---";
-                  if (visit['createdAt'] != null) {
+                  if (visit['createdAt'] != null && visit['createdAt'] is Timestamp) {
+                    final dt = (visit['createdAt'] as Timestamp).toDate();
+                    date = DateFormat('dd/MM/yy HH:mm').format(dt);
+                  } else if (visit['date'] != null) {
                     try {
-                       date = "Registrado"; 
-                    } catch (e) { date = "---"; }
+                      final dt = DateTime.parse(visit['date'].toString());
+                      date = DateFormat('dd/MM/yy HH:mm').format(dt);
+                    } catch (_) {}
                   }
                   
                   return [
@@ -90,7 +112,7 @@ class PdfGenerator {
             
             pw.SizedBox(height: 20),
             pw.Footer(
-              leading: pw.Text("Generado el ${DateFormat('yyyy-MM-dd').format(DateTime.now())}"),
+              leading: pw.Text("Documento de rendimiento"),
               trailing: pw.Text("TerraCode App"),
             ),
           ];
@@ -106,8 +128,9 @@ class PdfGenerator {
   static pw.Widget _buildPdfStat(String label, String value) {
     return pw.Column(
       children: [
-        pw.Text(value, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.teal)),
-        pw.Text(label, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+        pw.Text(value, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.teal800)),
+        pw.SizedBox(height: 4),
+        pw.Text(label, style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
       ],
     );
   }
