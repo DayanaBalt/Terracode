@@ -16,11 +16,27 @@ class AuthRepository {
 
   AuthRepository(this._auth, this._firestore);
 
- // INICIAR SESIÓN
+  //  INICIAR SESIÓN (BLOQUEO DE SEGURIDAD) 
   Future<void> signIn(String email, String password) async {
-    await _auth.signInWithEmailAndPassword(email: email, password: password);
+    // Autentica con Firebase Auth
+    final userCredential = await _auth.signInWithEmailAndPassword(email: email, password: password);
+    
+    final user = userCredential.user;
+    if (user != null) {
+      // verifica en la base de datos si está activo
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        // Si no existe el campo 'isActive', asumimos que es true (para no bloquear cuentas viejas)
+        final bool isActive = doc.data()?['isActive'] ?? true; 
+        
+        if (!isActive) {
+          // si el usuario ESTÁ BLOQUEADO. Cerramos la sesión inmediatamente y lanzamos error
+          await _auth.signOut();
+          throw Exception('Tu cuenta ha sido desactivada por el Administrador.');
+        }
+      }
+    }
   }
-
   // REGISTRAR USUARIO
   Future<void> signUp({
     required String email,
@@ -42,6 +58,7 @@ class AuthRepository {
         'name': name,
         'phone': phone,
         'role': 'seller', // Por defecto todos son vendedores al registrarse
+        'isActive': true,
         'createdAt': DateTime.now().toIso8601String(),
       });
     }

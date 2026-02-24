@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:terracode_app/features/shared/presentation/terms_conditions_screen.dart';
 import '../../../../core/constants/app_theme.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../data/admin_repository.dart';
+import 'admin_permissions_screen.dart';
 
 class AdminSettingsScreen extends ConsumerWidget {
   const AdminSettingsScreen({super.key});
@@ -99,7 +101,7 @@ class AdminSettingsScreen extends ConsumerWidget {
                     final name = user?['name'] ?? 'Usuario';
                     final email = user?['email'] ?? 'Sin correo';
                     final uid = user?['uid'] ?? '---';
-                    // Toma los últimos 4 caracteres del ID  (ej: ID: ...A82B)
+                    // Toma los últimos 4 caracteres del ID 
                     final shortId = uid.length > 4 ? uid.substring(uid.length - 4).toUpperCase() : uid;
 
                     return Row(
@@ -110,7 +112,7 @@ class AdminSettingsScreen extends ConsumerWidget {
                           child: const Icon(Icons.shield_outlined, color: Colors.white, size: 35),
                         ),
                         const SizedBox(width: 20),
-                        Expanded( // Usa Expanded para evitar error si el correo es muy largo
+                        Expanded( 
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -146,9 +148,31 @@ class AdminSettingsScreen extends ConsumerWidget {
                 subtitle: "Mensaje masivo a todos los vendedores",
                 onTap: () => _showGlobalMessageDialog(context, ref)
               ),
-              _buildSettingsOption(icon: Icons.lock_outline, title: "Seguridad y privacidad"),
-              _buildSettingsOption(icon: Icons.description_outlined, title: "Términos y condiciones"),
-
+              // --- BOTÓN DIRECTO DE CONTRASEÑA ---
+              _buildSettingsOption(
+                icon: Icons.lock_outline, 
+                title: "Cambiar Contraseña",
+                onTap: () async {
+                  final userEmail = FirebaseAuth.instance.currentUser?.email;
+                  if (userEmail != null) {
+                    try {
+                      await FirebaseAuth.instance.sendPasswordResetEmail(email: userEmail);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Enlace enviado con éxito. Revisa tu correo."), backgroundColor: Colors.green));
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+                      }
+                    }
+                  }
+                }
+              ),
+              // --- BOTÓN Termino y condiciones---
+              _buildSettingsOption(
+                icon: Icons.description_outlined, title: "Términos y condiciones",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsConditionsScreen())),
+              ),
               const SizedBox(height: 25),
 
               // SECCIÓN DE GESTIÓN 
@@ -175,7 +199,12 @@ class AdminSettingsScreen extends ConsumerWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context, 
+                            MaterialPageRoute(builder: (context) => const AdminPermissionsScreen())
+                          );
+                        },                        
                         child: const Text("Administrar Permisos"),
                       ),
                     ),

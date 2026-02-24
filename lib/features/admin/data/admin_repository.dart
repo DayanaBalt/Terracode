@@ -53,6 +53,30 @@ class AdminRepository {
     await batch.commit();
   }
 
+  //  BLOQUEAR O DESBLOQUEAR USUARIOS 
+  Future<void> toggleUserAccess(String userId, bool currentStatus) async {
+    // Si currentStatus es true (activo), lo pasamos a false (bloqueado), y viceversa.
+    await _firestore.collection('users').doc(userId).update({
+      'isActive': !currentStatus,
+    });
+  }
+
+  // Cambiar el rol de un usuario
+  Future<void> updateUserRole(String userId, String newRole) async {
+    await _firestore.collection('users').doc(userId).update({'role': newRole});
+  }
+
+  // Obtener a TODOS los usuarios
+  Stream<List<Map<String, dynamic>>> getAllUsers() {
+    return _firestore.collection('users').snapshots().map((snapshot) => 
+      snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['uid'] = doc.id;
+        return data;
+      }).toList()
+    );
+  }
+
   // Asignar puntos a una visita (Calificar)
   Future<void> assignPointsToVisit(String visitId, int points) async {
     await _firestore.collection('visits').doc(visitId).update({
@@ -61,7 +85,7 @@ class AdminRepository {
     });
   }
 
-  //  Obtener lista de vendedores (usuarios con rol 'seller')
+  //  Obtener lista de vendedores
   Stream<List<Map<String, dynamic>>> getSellers() {
     return _firestore
         .collection('users')
@@ -82,6 +106,10 @@ final adminRepositoryProvider = Provider<AdminRepository>((ref) {
 
 final sellersListProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   return ref.watch(adminRepositoryProvider).getSellers();
+});
+
+final allUsersListProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(adminRepositoryProvider).getAllUsers();
 });
 
 // Antena Global para el Dashboard
@@ -110,3 +138,4 @@ final sellerVisitsProvider = StreamProvider.family<List<Map<String, dynamic>>, S
             return data;
           }).toList());
 });
+

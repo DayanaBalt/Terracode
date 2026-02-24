@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:terracode_app/features/shared/presentation/terms_conditions_screen.dart';
 import '../../../../core/constants/app_theme.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/login_screen.dart';
@@ -26,6 +27,17 @@ class SellerProfileScreen extends ConsumerWidget {
     final userProfileAsync = ref.watch(currentUserProfileProvider);
     final visitsAsync = ref.watch(userVisitsProvider);
 
+    // Seguridad si esta bloqueada la cuenta
+    ref.listen(currentUserProfileProvider, (previous, next) {
+      next.whenData((userData) {
+        if (userData != null) {
+          final bool isActive = userData['isActive'] ?? true;
+          if (!isActive) {
+            _signOut(context); 
+          }
+        }
+      });
+    });
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       body: SafeArea(
@@ -133,11 +145,11 @@ class SellerProfileScreen extends ConsumerWidget {
                    final thisMonthVisits = visits.where((v) {
                     DateTime? date;
 
-                    // Intentamos leer la fecha nueva (Timestamp)
+                    // Intentamos leer la fecha nueva 
                      if (v['createdAt'] != null && v['createdAt'] is Timestamp) {
                        date = (v['createdAt'] as Timestamp).toDate();
                      } 
-                     //  Si no existe, intentamos leer la fecha vieja (String)
+                     //  Si no existe, intentamos leer la fecha vieja 
                      else if (v['date'] != null) {
                        try {
                          date = DateTime.parse(v['date'].toString());
@@ -161,7 +173,9 @@ class SellerProfileScreen extends ConsumerWidget {
                      children: [
                        Container(
                          padding: const EdgeInsets.all(20),
-                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]),
+                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
+                           blurRadius: 10)]),
                          child: Column(
                            crossAxisAlignment: CrossAxisAlignment.start,
                            children: [
@@ -219,7 +233,9 @@ class SellerProfileScreen extends ConsumerWidget {
                                 ? Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-                                    child: Text("$unreadCount Nuevo${unreadCount > 1 ? 's' : ''}", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    child: Text("$unreadCount Nuevo${unreadCount > 1 ? 's' : ''}",
+                                     style: const TextStyle(color: Colors.white,
+                                     fontSize: 10, fontWeight: FontWeight.bold)),
                                   )
                                 : const Icon(Icons.chevron_right, color: Colors.grey),
                               onTap: () {
@@ -233,9 +249,36 @@ class SellerProfileScreen extends ConsumerWidget {
                       }
                     ),
                     const Divider(height: 1, indent: 50),
-                    _buildSettingsTile(Icons.lock_outline, "Cambiar Contraseña"),
+                    _buildSettingsTile(
+                      Icons.lock_outline, 
+                      "Cambiar Contraseña",
+                      onTap: () async {
+                        final userEmail = FirebaseAuth.instance.currentUser?.email;
+                        if (userEmail != null) {
+                          try {
+                            // Función real de Firebase para resetear contraseña
+                            await FirebaseAuth.instance.sendPasswordResetEmail(email: userEmail);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("¡Te hemos enviado un correo para restablecer tu contraseña!"),
+                                backgroundColor: Colors.green)
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), 
+                              backgroundColor: Colors.red));
+                            }
+                          }
+                        }
+                      }
+                    ),
+                    
                     const Divider(height: 1, indent: 50),
-                    _buildSettingsTile(Icons.help_outline, "Ayuda y Soporte"),
+                    _buildSettingsTile(
+                      Icons.description_outlined, "Términos y Condiciones",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsConditionsScreen())),
+                    ),
                   ],
                 ),
               ),
@@ -282,14 +325,15 @@ class SellerProfileScreen extends ConsumerWidget {
       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), 
       blurRadius: 5)]),
       child: Row(children: [
-        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color, size: 24)),
+        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1),
+         borderRadius: BorderRadius.circular(10)),
+         child: Icon(icon, color: color, size: 24)),
         const SizedBox(width: 15),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)), Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.darkText))]))
       ]),
     );
   }
 
-  //  Firma actualizada para aceptar onTap
   Widget _buildSettingsTile(IconData icon, String title, {Widget? trailing, VoidCallback? onTap}) => ListTile(
     leading: Icon(icon, color: AppTheme.primaryColor), 
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
