@@ -32,30 +32,17 @@ class AdminRepository {
     });
   }
 
- // ENVIAR MENSAJE GLOBAL A TODOS LOS VENDEDORES 
+ //  ENVIAR AL TABLÓN DE ANUNCIOS GLOBAL 
   Future<void> sendGlobalNotification(String title, String message) async {
-    //  Buscamos a todos los usuarios que sean vendedores
-    final sellersSnapshot = await _firestore.collection('users').where('role', isEqualTo: 'seller').get();
-    final batch = _firestore.batch();
-
-    for (var doc in sellersSnapshot.docs) {
-      final newNotifRef = _firestore.collection('notifications').doc();
-      batch.set(newNotifRef, {
-        'userId': doc.id, 
-        'title': title,
-        'body': message,
-        'isRead': false,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    }
-
-    //  Ejecutamos el guardado masivo
-    await batch.commit();
+    await _firestore.collection('global_messages').add({
+      'title': title,
+      'body': message,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
   //  BLOQUEAR O DESBLOQUEAR USUARIOS 
   Future<void> toggleUserAccess(String userId, bool currentStatus) async {
-    // Si currentStatus es true (activo), lo pasamos a false (bloqueado), y viceversa.
     await _firestore.collection('users').doc(userId).update({
       'isActive': !currentStatus,
     });

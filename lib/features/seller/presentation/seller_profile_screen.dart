@@ -200,7 +200,7 @@ class SellerProfileScreen extends ConsumerWidget {
                          ),
                        ),
                        const SizedBox(height: 15),
-                       _buildStatRowCard(Icons.calendar_month, "Visitas este mes", "$thisMonthVisits realizadas", Colors.blue),
+                       _buildStatRowCard(Icons.calendar_month, "Visitas este mes", "$thisMonthVisits Asignadas", Colors.blue),
                      ],
                    );
                 },

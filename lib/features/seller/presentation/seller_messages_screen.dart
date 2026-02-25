@@ -1,45 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_theme.dart';
+import '../data/visits_repository.dart';
 
-class SellerMessagesScreen extends StatefulWidget {
+class SellerMessagesScreen extends ConsumerStatefulWidget {
   const SellerMessagesScreen({super.key});
 
   @override
-  State<SellerMessagesScreen> createState() => _SellerMessagesScreenState();
+  ConsumerState<SellerMessagesScreen> createState() => _SellerMessagesScreenState();
 }
 
-class _SellerMessagesScreenState extends State<SellerMessagesScreen> {
+class _SellerMessagesScreenState extends ConsumerState<SellerMessagesScreen> {
   final user = FirebaseAuth.instance.currentUser;
+  List<dynamic> _readMessages = [];
 
   @override
   void initState() {
     super.initState();
-    _markMessagesAsRead();
+    _fetchReadMessages();
   }
 
-  Future<void> _markMessagesAsRead() async {
+  // Obtenemos la lista de mensajes que este usuario ya leyó
+  Future<void> _fetchReadMessages() async {
     if (user == null) return;
-    
-    final unreadDocs = await FirebaseFirestore.instance
-        .collection('notifications')
-        .where('userId', isEqualTo: user!.uid)
-        .where('isRead', isEqualTo: false)
-        .get();
-
-    if (unreadDocs.docs.isEmpty) return; 
-
-    final batch = FirebaseFirestore.instance.batch();
-    for (var doc in unreadDocs.docs) {
-      batch.update(doc.reference, {'isRead': true});
+    final doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+    if (mounted) {
+      setState(() {
+        _readMessages = doc.data()?['read_messages'] ?? [];
+      });
     }
-    await batch.commit();
+  }
+
+  // Guardamos un mensaje en su lista personal de leídos
+  Future<void> _markAsRead(String messageId) async {
+    if (user == null || _readMessages.contains(messageId)) return;
+    
+    await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
+      'read_messages': FieldValue.arrayUnion([messageId])
+    });
+    
+    if (mounted) {
+      setState(() {
+        _readMessages.add(messageId);
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (user == null) return const Scaffold(body: Center(child: Text("Error de sesión")));
+
+    final messagesAsync = ref.watch(globalMessagesProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -48,48 +61,30 @@ class _SellerMessagesScreenState extends State<SellerMessagesScreen> {
         backgroundColor: AppTheme.primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('notifications')
-            .where('userId', isEqualTo: user!.uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          
-          var messages = snapshot.data?.docs.toList() ?? [];
-          
-          if (messages.isEmpty) {
-            return const Center(child: Text("No tienes ningún mensaje.", style: TextStyle(color: Colors.grey, fontSize: 16)));
-          }
-
-          messages.sort((a, b) {
-            final aData = a.data() as Map<String, dynamic>;
-            final bData = b.data() as Map<String, dynamic>;
-            final aTime = aData['createdAt'] as Timestamp?;
-            final bTime = bData['createdAt'] as Timestamp?;
-            if (aTime == null || bTime == null) return 0;
-            return bTime.compareTo(aTime);
-          });
+      body: messagesAsync.when(
+        data: (messages) {
+          if (messages.isEmpty) return const Center(child: Text("No hay mensajes del administrador."));
 
           return ListView.builder(
             padding: const EdgeInsets.all(20),
             itemCount: messages.length,
             itemBuilder: (context, index) {
-              final msg = messages[index].data() as Map<String, dynamic>;
+              final msg = messages[index];
+              final String messageId = msg['id'];
               
+              // Verificamos si este ID está en la lista de leídos del usuario
+              final isUnread = !_readMessages.contains(messageId);
+
+              // Si es nuevo, lo marcamos como leído en el momento que aparece en pantalla
+              if (isUnread) {
+                _markAsRead(messageId);
+              }
+
               String timeAgo = "Hace un momento";
               if (msg['createdAt'] != null) {
                 final date = (msg['createdAt'] as Timestamp).toDate();
                 timeAgo = "${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
               }
-
-              final isUnread = msg['isRead'] == false;
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 15),
@@ -123,6 +118,8 @@ class _SellerMessagesScreenState extends State<SellerMessagesScreen> {
             },
           );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, stack) => Center(child: Text("Error: $e")),
       ),
     );
   }

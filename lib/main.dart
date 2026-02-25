@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'core/constants/app_theme.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/check_role_screen.dart';
+import 'features/auth/presentation/splash_screen.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,11 +30,9 @@ class MyApp extends StatelessWidget {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            // SI HAY USUARIO -> VAMOS AL DISTRIBUIDOR DE ROLES
            return const CheckRoleScreen();
           }
-          // SI NO HAY USUARIO -> VAMOS AL LOGIN
-          return const LoginScreen();
+          return const SplashScreen();
         },
       ),
     );

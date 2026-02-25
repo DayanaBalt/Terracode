@@ -32,7 +32,7 @@ class VisitsRepository {
   Future<void> startVisit(String visitId) async {
     await _firestore.collection('visits').doc(visitId).update({
       'status': 'in_progress', 
-      'startTime': FieldValue.serverTimestamp(), //  LA HORA REAL DE GOOGLE
+      'startTime': FieldValue.serverTimestamp(), 
     });
   }
 
@@ -77,12 +77,34 @@ return FirebaseFirestore.instance
 final sellerNavIndexProvider = StateProvider<int>((ref) => 0); 
 final activeVisitIdProvider = StateProvider<String?>((ref) => null);
 
-// --- NOTIFICACIONES EN TIEMPO REAL ---
-final unreadNotificationsProvider = StreamProvider.family<int, String>((ref, userId) {
+// TABLERO DE MENSAJES GLOBALES 
+final globalMessagesProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   return FirebaseFirestore.instance
-      .collection('notifications')
-      .where('userId', isEqualTo: userId)
-      .where('isRead', isEqualTo: false) 
+      .collection('global_messages')
+      .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((snapshot) => snapshot.docs.length);
+      .map((snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList());
+});
+
+// MENSAJES NO LEÍDOS 
+final unreadNotificationsProvider = StreamProvider.family<int, String>((ref, userId) {
+  // lista de mensajes que el usuario YA leyó
+  return FirebaseFirestore.instance.collection('users').doc(userId).snapshots().asyncMap((userDoc) async {
+    final userData = userDoc.data() ?? {};
+    final List<dynamic> readMessages = userData['read_messages'] ?? [];
+
+    final messagesSnapshot = await FirebaseFirestore.instance.collection('global_messages').get();
+    
+    int unreadCount = 0;
+    for (var doc in messagesSnapshot.docs) {
+      if (!readMessages.contains(doc.id)) {
+        unreadCount++;
+      }
+    }
+    return unreadCount;
+  });
 });
