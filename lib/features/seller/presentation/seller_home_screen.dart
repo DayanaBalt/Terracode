@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_theme.dart';
 import '../data/visits_repository.dart';
+import '../../auth/data/auth_repository.dart'; 
 
 class SellerHomeScreen extends ConsumerWidget {
   const SellerHomeScreen({super.key});
@@ -9,6 +10,10 @@ class SellerHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final visitsAsyncValue = ref.watch(userVisitsProvider);
+    
+    // perfil del usuario para sacar su nombre
+    final userProfileAsync = ref.watch(currentUserProfileProvider);
+    final userName = userProfileAsync.value?['name'] ?? 'Vendedor';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -21,11 +26,65 @@ class SellerHomeScreen extends ConsumerWidget {
 
           return Column(
             children: [
-              // HEADER
+              // HEADER MEJORADO 
               Container(
-                width: double.infinity, padding: const EdgeInsets.only(top: 60, bottom: 30, left: 20, right: 20),
-                decoration: const BoxDecoration(color: AppTheme.primaryColor, borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
-                child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Hola Vendedor', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), Text('Tu ruta está lista', style: TextStyle(color: Colors.white70))]),
+                width: double.infinity, 
+                padding: const EdgeInsets.only(top: 60, bottom: 30, left: 24, right: 24),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor, 
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(35), 
+                    bottomRight: Radius.circular(35)
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withOpacity(0.4),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    //  Textos de la Izquierda 
+                    Expanded( // Usamos Expanded para que textos largos no rompan la fila
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, 
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Hola $userName', 
+                                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min, 
+                              children: [
+                                Icon(Icons.directions_run, color: Colors.white, size: 16),
+                                SizedBox(width: 6),
+                                Text('Tu ruta está lista', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                          ),
+                        ]
+                      ),
+                    ),
+                    const SizedBox(width: 15), 
+                  ],
+                ),
               ),
               
               Expanded(
@@ -68,7 +127,7 @@ class SellerHomeScreen extends ConsumerWidget {
                                 padding: const EdgeInsets.all(15),
                                 decoration: BoxDecoration(color: Colors.white, 
                                   borderRadius: BorderRadius.circular(15), 
-                                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)]),
+                                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 5)]),
                                 child: Row(children: [
                                   // ICONO IZQUIERDO (PIN)
                                   Container(
@@ -82,7 +141,7 @@ class SellerHomeScreen extends ConsumerWidget {
                                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                     Row(
                                       children: [
-                                        Text(visit['clientName'] ?? 'Cliente', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        Expanded(child: Text(visit['clientName'] ?? 'Cliente', style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
                                         if (isUrgent && !isCompleted) ...[
                                           const SizedBox(width: 8),
                                           Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.red[100], borderRadius: BorderRadius.circular(4)), child: const Text("Urgente", style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)))
