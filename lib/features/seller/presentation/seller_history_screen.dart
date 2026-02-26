@@ -11,143 +11,164 @@ class SellerHistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Obtenemos los datos sin interrumpir el dibujo de la pantalla
     final userProfileAsync = ref.watch(currentUserProfileProvider);
     final visitsAsync = ref.watch(userVisitsProvider);
 
+    final userName = userProfileAsync.value?['name'] ?? 'Cargando...';
+    final visits = visitsAsync.value ?? [];
+
+    final completedVisits = visits.where((v) => v['status'] == 'completed').toList();
+    final totalAssigned = visits.length;
+    final totalCompleted = completedVisits.length;
+    final totalPhotos = completedVisits.where((v) => v['photoUrl'] != null).length;
+    final compliance = totalAssigned == 0 ? 0 : ((totalCompleted / totalAssigned) * 100).toInt();
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
-      body: SingleChildScrollView( // Scroll para pantallas pequeñas
-        child: Column(
-          children: [
-            // --- ENCABEZADO VERDE ---
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 50, 20, 30),
-              decoration: const BoxDecoration(
-                color: AppTheme.primaryColor,
-                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
-              ),
-              child: Column(
+      backgroundColor: const Color(0xFFF1F5F9), 
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // HEADER 
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Perfil Mini
-                  userProfileAsync.when(
-                    data: (user) => Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Expanded(
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.person, color: Colors.white, size: 20),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(user?['name'] ?? 'Vendedor', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                                const Text("Vendedor de Campo", style: TextStyle(color: Colors.white70, fontSize: 10)),
-                              ],
-                            ),
-                          ],
+                        // Avatar circular
+                        CircleAvatar(
+                          backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                          radius: 22,
+                          child: const Icon(Icons.person, color: AppTheme.primaryColor),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)),
-                          child: Text(DateFormat('dd MMM').format(DateTime.now()), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                        )
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                userName, 
+                                style: const TextStyle(color: AppTheme.darkText, fontSize: 17, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const Text("Vendedor de Campo", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                    loading: () => const SizedBox(height: 40),
-                    error: (_,__) => const SizedBox(),
                   ),
-
-                  const SizedBox(height: 25),
-                  const Align(alignment: Alignment.centerLeft, child: Text("Historial de Visitas", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
-                  const SizedBox(height: 5),
-                  const Align(alignment: Alignment.centerLeft, child: Text("Registro completo de tus visitas realizadas", style: TextStyle(color: Colors.white70, fontSize: 12))),
-                  const SizedBox(height: 20),
-
-                  // TARJETA DE ESTADÍSTICAS REALES
-                  visitsAsync.when(
-                    data: (visits) {
-                      // CÁLCULOS REALES
-                      final totalAssigned = visits.length;
-                      final completed = visits.where((v) => v['status'] == 'completed').toList();
-                      final totalCompleted = completed.length;
-                      final totalPhotos = completed.where((v) => v['photoUrl'] != null).length;
-                      
-                      // Porcentaje 
-                      final compliance = totalAssigned == 0 ? 0 : ((totalCompleted / totalAssigned) * 100).toInt();
-
-                      return Container(
-                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF004D40), 
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10)],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildStatItem("$totalCompleted", "Total visitas"),
-                            _buildVerticalDivider(),
-                            _buildStatItem("$totalPhotos", "Fotos"),
-                            _buildVerticalDivider(),
-                            _buildStatItem("$compliance%", "Cumplimiento"),
-                          ],
-                        ),
-                      );
-                    },
-                    loading: () => const SizedBox(height: 80),
-                    error: (_,__) => const SizedBox(),
-                  ),
+                  // Etiqueta de la fecha suave
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1), 
+                      borderRadius: BorderRadius.circular(20)
+                    ),
+                    child: Text(
+                      DateFormat('dd MMM').format(DateTime.now()), 
+                      style: const TextStyle(color: AppTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.bold)
+                    ),
+                  )
                 ],
               ),
-            ),
+              
+              const SizedBox(height: 25),
+              
+              // --- Títulos ---
+              const Text("Historial de Visitas", style: TextStyle(color: AppTheme.darkText, fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              const Text("Registro de tus visitas realizadas", style: TextStyle(color: Colors.grey, fontSize: 14)),
+              
+              const SizedBox(height: 20),
 
-            // --- LISTA DE VISITAS ---
-            visitsAsync.when(
-              data: (visits) {
-                final completedVisits = visits.where((v) => v['status'] == 'completed').toList();
-                
-                if (completedVisits.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.only(top: 50),
-                    child: Text("No hay historial disponible", style: TextStyle(color: Colors.grey)),
+              // TARJETA DE ESTADÍSTICAS FLOTANTE
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF004D40),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF004D40).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))
+                  ],
+                ),
+                child: visitsAsync.isLoading
+                  ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildStatItem("$totalCompleted", "Total visitas"),
+                        _buildVerticalDivider(),
+                        _buildStatItem("$totalPhotos", "Fotos"),
+                        _buildVerticalDivider(),
+                        _buildStatItem("$compliance%", "Cumplimiento"),
+                      ],
+                    ),
+              ),
+
+              const SizedBox(height: 25),
+
+              // LISTA DE VISITAS 
+              visitsAsync.when(
+                data: (_) {
+                  if (completedVisits.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 40),
+                        child: Column(
+                          children: [
+                            Icon(Icons.history, size: 50, color: Colors.grey[300]),
+                            const SizedBox(height: 10),
+                            const Text("No hay historial disponible", style: TextStyle(color: Colors.grey, fontSize: 15)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(), 
+                    itemCount: completedVisits.length,
+                    itemBuilder: (context, index) {
+                      return _buildHistoryCard(completedVisits[index]);
+                    },
                   );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: completedVisits.length,
-                  itemBuilder: (context, index) {
-                    final visit = completedVisits[index];
-                    return _buildHistoryCard(visit);
-                  },
-                );
-              },
-              loading: () => const Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()),
-              error: (e, s) => Padding(padding: EdgeInsets.all(20), child: Text("Error: $e")),
-            ),
-          ],
+                },
+                loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
+                error: (e, s) => Text("Error: $e"),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // WIDGETS AUXILIARES
+  // --- WIDGETS AUXILIARES ---
+
   Widget _buildStatItem(String value, String label) {
-    return Column(children: [
-      Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-      Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
-    ]);
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+      ]
+    );
   }
 
-  Widget _buildVerticalDivider() => Container(height: 30, width: 1, color: Colors.white24);
+  Widget _buildVerticalDivider() {
+    return Container(height: 30, width: 1, color: Colors.white.withOpacity(0.2));
+  }
 
   Widget _buildHistoryCard(Map<String, dynamic> visit) {
-    // LÓGICA DE TIEMPO REAL
     String dateStr = "Hoy";
     String durationStr = "-- min";
-    bool hasPhoto = visit['photoUrl'] != null;
+    bool hasPhoto = visit['photoUrl'] != null && visit['photoUrl'].toString().isNotEmpty;
 
     if (visit['endTime'] != null) {
       final end = (visit['endTime'] as Timestamp).toDate();
@@ -167,31 +188,42 @@ class SellerHistoryScreen extends ConsumerWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.green, width: 2)),
-            child: const Icon(Icons.check, color: Colors.green, size: 20),
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white, 
+              shape: BoxShape.circle, 
+              border: Border.all(color: Colors.green, width: 2)
+            ),
+            child: const Icon(Icons.check, color: Colors.green, size: 18),
           ),
           const SizedBox(width: 15),
+          
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(visit['clientName'] ?? 'Cliente', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.darkText)),
-                Text(visit['address'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                const SizedBox(height: 12),
+                Text(visit['clientName'] ?? 'Cliente', style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppTheme.darkText)),
+                const SizedBox(height: 4),
+                Text(visit['address'] ?? '', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                
+                const SizedBox(height: 14),
+                
                 Row(
                   children: [
-                    _buildSmallIconInfo(Icons.calendar_today, dateStr),
+                    _buildSmallIconInfo(Icons.calendar_today_outlined, dateStr),
                     const SizedBox(width: 15),
                     _buildSmallIconInfo(Icons.access_time, durationStr),
                     const SizedBox(width: 15),
@@ -208,12 +240,11 @@ class SellerHistoryScreen extends ConsumerWidget {
 
   Widget _buildSmallIconInfo(IconData icon, String text) {
     return Row(
-      children: [Icon(
-        icon, size: 14, 
-        color: Colors.grey), 
-        const SizedBox(width: 4), 
-        Text(text, style: 
-          const TextStyle(fontSize: 11, color: Colors.grey))]
+      children: [
+        Icon(icon, size: 15, color: Colors.grey[400]), 
+        const SizedBox(width: 5), 
+        Text(text, style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500))
+      ]
     );
   }
 }
