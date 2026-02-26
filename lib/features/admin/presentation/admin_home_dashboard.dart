@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_theme.dart';
 import '../data/admin_repository.dart';
+import 'admin_all_visits_screen.dart';
 
 class AdminHomeDashboard extends ConsumerWidget {
   const AdminHomeDashboard({super.key});
@@ -29,7 +30,7 @@ class AdminHomeDashboard extends ConsumerWidget {
     if (completedCount == 0) return "0m";
     final averageSeconds = totalSeconds ~/ completedCount;
 
-    // VISUALIZACIÓN INTELIGENTE
+    // VISUALIZACIÓN 
     if (averageSeconds < 60) {
       return "${averageSeconds}s"; 
     } else {
@@ -121,12 +122,18 @@ class AdminHomeDashboard extends ConsumerWidget {
               ),
               const SizedBox(height: 30),
 
-              // LISTA DE ACTIVIDAD
+             // LISTA DE ACTIVIDAD
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text("Actividad Reciente", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.darkText)),
-                  TextButton(onPressed: (){}, child: const Text("Ver todo")),
+                  
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminAllVisitsScreen()));
+                    }, 
+                    child: const Text("Ver todo")
+                  ),
                 ],
               ),
               

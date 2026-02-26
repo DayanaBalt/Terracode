@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; 
 import 'core/constants/app_theme.dart';
-import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/check_role_screen.dart';
 import 'features/auth/presentation/splash_screen.dart'; 
 
