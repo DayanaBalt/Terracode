@@ -38,6 +38,7 @@ class SellerProfileScreen extends ConsumerWidget {
         }
       });
     });
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       body: SafeArea(
@@ -135,34 +136,35 @@ class SellerProfileScreen extends ConsumerWidget {
 
               const SizedBox(height: 25),
 
-              // --- RENDIMIENTO SEMANAL ---
+              //  RENDIMIENTO SEMANAL 
               const Text("Tu Rendimiento", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkText)),
               const SizedBox(height: 15),
 
               visitsAsync.when(
                 data: (visits) {
                    final now = DateTime.now();
+                   
+                   //VISITAS ESTE MES
                    final thisMonthVisits = visits.where((v) {
-                    DateTime? date;
-
-                    // Intentamos leer la fecha nueva 
-                     if (v['createdAt'] != null && v['createdAt'] is Timestamp) {
-                       date = (v['createdAt'] as Timestamp).toDate();
-                     } 
-                     //  Si no existe, intentamos leer la fecha vieja 
-                     else if (v['date'] != null) {
-                       try {
-                         date = DateTime.parse(v['date'].toString());
-                       } catch (e) {
-                         return false; 
+                     DateTime? visitDate;
+                     try {
+                       // 1. Primero busca la fecha textual que guardamos al crear la visita
+                       if (v['date'] != null && v['date'].toString().isNotEmpty) {
+                         visitDate = DateTime.parse(v['date'].toString());
+                       } 
+                       // 2. Si falla, busca el timestamp interno de Firebase
+                       else if (v['createdAt'] != null && v['createdAt'] is Timestamp) {
+                         visitDate = (v['createdAt'] as Timestamp).toDate();
                        }
+                     } catch (e) {
+                       // Si falla la conversión, lo ignora
                      }
 
-                     // Si no encontramos fecha, no cuenta para el mes
-                     if (date == null) return false;
-
-                     // Verificamos si es este mes y este año
-                     return date.month == now.month && date.year == now.year;
+                     // Si logramos sacar la fecha, revisamos que coincida mes y año actual
+                     if (visitDate != null) {
+                       return visitDate.month == now.month && visitDate.year == now.year;
+                     }
+                     return false;
                    }).length;
 
                    final total = visits.length;
